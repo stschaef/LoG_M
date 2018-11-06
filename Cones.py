@@ -64,10 +64,12 @@ def proj(v):
 def drawable(pt):
     # print('Point:', pt)
     # Pretend that the origin is midpoint of drawing window
-    x = WIDTH / 2 - pt[0] * 200
-    y = HEIGHT / 2 - pt[1] * 200
+    x = WIDTH - pt[0] * 250
+    y = HEIGHT - pt[1] * 250
+
+    offset = -100, -50
     # print('X:', x, 'Y:', y)
-    return x, y
+    return x + offset[0], y + offset[1]
 
 
 
@@ -84,7 +86,7 @@ def tiling(matrices):
         p3 = drawable(p3)
         p4 = drawable(p4)
 
-        draw.line((p1, p2, p3, p4), fill=200, width=1)
+        draw.line((p1, p2, p3, p4), fill=200, width=2)
 
 
 def colored_tiling(matrices):
@@ -108,12 +110,38 @@ def colored_tiling(matrices):
 #      colored_tiling(draw_these_polygons)
 # ).show(axes=false,aspect_ratio=1)
 
-draw_these_lines=[Id,R1*R2,R1*R2*R1*R2,R1,R1*R2*R1,R1*R2*R1*R2*R1,R3]
-mats = [Id, R1*R2,R1*R2*R1*R2,R1,R1*R2*R1,R1*R2*R1*R2*R1]
+
+mats = [Id, R1, R2, R3]
+
+COUNT_MAX = 500
+
+def gen_mats(matrices):
+    count = 0
+    for mat in mats:
+        if not any((np.linalg.inv(mat) == x).all() for x in mats):
+            mats.append(np.linalg.inv(mat))
+            count += 1
+            print('that')
+            if count > COUNT_MAX:
+                return
+        for matrix in mats:
+            if not any((np.dot(mat, matrix) == x).all() for x in mats):
+                mats.append(np.dot(mat, matrix))
+                count += 1
+                print('this')
+                if count > COUNT_MAX:
+                    return
+
+
+gen_mats(mats)
+print(mats)
+
+# draw_these_lines=[Id,R1*R2,R1*R2*R1*R2,R1,R1*R2*R1,R1*R2*R1*R2*R1,R3]
+# mats = [Id, R1*R2,R1*R2*R1*R2,R1,R1*R2*R1,R1*R2*R1*R2*R1]
 tiling(mats)
-tiling(draw_these_lines)
+# tiling(draw_these_lines)
 #colored_tiling(mats)
-points = ((100, 100), (200, 100), (200, 200), (100, 200), (50, 150))
+# points = ((100, 100), (200, 100), (200, 200), (100, 200), (50, 150))
 # draw.polygon((points), fill=200)
 image.show()
 
