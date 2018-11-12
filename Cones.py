@@ -40,15 +40,13 @@ R3 = Id - np.array([
     [0, 0, 0],
     B.T[2]])
 
+# Change of basis on R3
+# Orthonormal basis with one basis element being perpendicular to our chart, other two span the chart
 M = np.array([
     [0, - np.sqrt(2) / np.sqrt(3), 1 / 3],
     [1 / np.sqrt(2), 1 / np.sqrt(6), 1 / 3],
     [-1 / np.sqrt(2), 1 / np.sqrt(6), 1 / 3]])
-print(M)
-print("*")
-print(np.linalg.inv(M))
-print("*")
-print(np.linalg.pinv(M))
+
 
 # Related to affine chart
 # x = x / z
@@ -64,18 +62,20 @@ def project_xyz1(v):
     return vec[0] / vec[2], vec[1] / vec[2]
 
 
+# Height Scaling, Width Scaling, x-offset, y-offset
+opts = {project_z1: (.4, .4, -50, -50), project_xyz1: (1.2, 1.2, -450, -300)}
+
 
 # pt should be a tuple of coordinates to draw
-def drawable(pt):
-    # print('Point:', pt)
+def drawable(pt, project):
+    x, y, x_off, y_off = opts[project]
+
     # Pretend that the origin is midpoint of drawing window
-    x = WIDTH - pt[0] * int(WIDTH * .5)
-    y = HEIGHT - pt[1] * int(HEIGHT * .5)
+    x = WIDTH - pt[0] * int(WIDTH * x)
+    y = HEIGHT - pt[1] * int(HEIGHT * y)
 
     # Offset should be used to center image, but may not be necessary
-    offset = -200, -200
-    # print('X:', x, 'Y:', y)
-    return x + offset[0], y + offset[1]
+    return x + x_off, y + y_off
 
 
 def tiling(matrices, project):
@@ -87,40 +87,45 @@ def tiling(matrices, project):
         p4 = project(np.dot(mat, L1))
 
         # Switch from a scale close to origin to be within the drawing window
-        p1 = drawable(p1)
-        p2 = drawable(p2)
-        p3 = drawable(p3)
-        p4 = drawable(p4)
-
+        p1 = drawable(p1, project)
+        p2 = drawable(p2, project)
+        p3 = drawable(p3, project)
+        p4 = drawable(p4, project)
         # TO DO: Color may be used to fill in tiles, but the order in which we color must be determined
         # color = (random.randrange(125, 255), random.randrange(125, 155), random.randrange(155, 255))
         # draw.polygon((p1, p2, p3), fill=color)
 
         # Draw line between appropriate points
         # Unsure why there must be four points here
-        draw.line((p1, p2, p3, p4), fill=(255, 255, 255), width=2)
+        draw.line((p1, p2, p3, p4), fill=(255, 0, 0), width=2)
 
 
-def colored_tiling(matrices, project):
-    # Don't know how to incorporate this function, its functionality could be taken by tiling(matrices)
+pts = []
+
+
+def draw_orbit(vec, matrices, project):
     for mat in matrices:
-        # Projectivize the lines
-        p1 = project(np.dot(mat, L1))
-        p2 = project(np.dot(mat, L2))
-        p3 = project(np.dot(mat, L3))
+        pt = project(np.dot(mat, vec))
+        pt = drawable(pt, project)
+        # draw.point(pt, fill=(int(.6*255), int(.4*255), int(0*255)))
+        # print(pt)
+        # draw.ellipse([(pt[0], pt[0] + 10), (pt[1], pt[1] + 10)], fill=(250, 250, 100))
+        pts.append(pt)
 
-        # Switch from a scale close to origin to be within the drawing window
-        p1 = drawable(p1)
-        p2 = drawable(p2)
-        p3 = drawable(p3)
 
-        # Attempt to color in polygons
-        draw.polygon((p1, p2, p3), fill=200)
+def draw_hull(points):
+    # draw.polygon(points, outline=(0, 255, 0))
+    for pt1 in points:
+        for pt2 in points:
+            dist = lambda pt1_, pt2_: np.sqrt((pt2_[0] - pt1_[0])**2 + (pt2_[1] - pt1_[1])**2)
+            if dist(pt1, pt2) < 30:
+                draw.line((pt1, pt2), fill=(0, 255, 0), width=2)
+
 
 
 mats = [Id, R1, R2, R3]
 
-COUNT_MAX = 500
+COUNT_MAX = 1500
 
 
 def gen_mats(matrices):
@@ -144,8 +149,17 @@ def gen_mats(matrices):
 
 gen_mats(mats)
 # print(mats)
-# tiling(mats, project_z1)
-tiling(mats, project_xyz1)
-image.save('cone.png', 'PNG')
+tiling(mats, project_z1)
+# tiling(mats, project_xyz1)
+composed = np.dot(R2, R3)
+composed = np.dot(R1, composed)
+vals, vecs = np.linalg.eig(composed)
+print("R1 R2 R3:\n", composed)
+print("Eigenvalues:\n", vals)
+print("Eigenvectors:\n", vecs)
+draw_orbit(vecs.T[0], mats, project_z1)
+draw_orbit(vecs.T[1], mats, project_z1)
+draw_hull(pts)
+image.save('cone_and_boundary.png', 'PNG')
 image.show()
 
